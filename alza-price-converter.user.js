@@ -7,8 +7,7 @@
 // @version     2
 // @grant       GM_xmlhttpRequest
 // @connect     www.ecb.europa.eu
-// @run-at      document-start
-// @updateURL https://raw.githubusercontent.com/MangelSpec/tampermonkey-scripts/main/alza-price-converter.user.js
+// @run-at      document-end
 // ==/UserScript==
 
 var rate = 0.041; // hardcoded currency rate in case fetch fails
@@ -66,5 +65,16 @@ function convertPrices() {
 
 (function () {
     "use strict";
-    setInterval(convertPrices, 300);
+    // Use MutationObserver to handle dynamically loaded content
+    var observer = new MutationObserver(function () {
+        convertPrices();
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // Initial conversion
+    convertPrices();
 })();
