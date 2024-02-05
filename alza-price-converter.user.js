@@ -8,6 +8,7 @@
 // @grant       GM_xmlhttpRequest
 // @connect     www.ecb.europa.eu
 // @run-at      document-start
+// @updateURL https://raw.githubusercontent.com/MangelSpec/tampermonkey-scripts/main/alza-price-converter.user.js
 // ==/UserScript==
 
 var rate = 0.041; // hardcoded currency rate in case fetch fails
