@@ -114,22 +114,24 @@ function convertComplexPrices() {
 }
 
 function convertPricesWithUnits() {
-  document.querySelectorAll(".priceOffer").forEach((priceElement) => {
-    // Extract price and unit
-    const priceText = priceElement.innerText;
-    const matches = priceText.match(/CZK\s*([0-9.,]+)\s*\/(\w+)/);
+  document
+    .querySelectorAll('.priceOffer, [data-test="product-price-per-unit"]')
+    .forEach((priceElement) => {
+      // Extract price and unit
+      const priceText = priceElement.innerText;
+      const matches = priceText.match(/CZK\s*([0-9.,]+)\s*\/(\w+)/);
 
-    if (matches && matches[1] && matches[2]) {
-      const priceCZK = parseFloat(matches[1].replace(",", "."));
-      const unit = matches[2]; // e.g., "kg" or "pc"
+      if (matches && matches[1] && matches[2]) {
+        const priceCZK = parseFloat(matches[1].replace(",", "."));
+        const unit = matches[2]; // e.g., "kg" or "pc"
 
-      if (!isNaN(priceCZK)) {
-        const priceEUR = priceCZK * rate; // Convert to EUR using the global 'rate'
-        // Update the priceElement with the converted price and original unit
-        priceElement.innerText = `€ ${priceEUR.toFixed(2)} /${unit}`;
+        if (!isNaN(priceCZK)) {
+          const priceEUR = priceCZK * rate; // Convert to EUR using the global 'rate'
+          // Update the priceElement with the converted price and original unit
+          priceElement.innerText = `€ ${priceEUR.toFixed(2)} /${unit}`;
+        }
       }
-    }
-  });
+    });
 }
 
 function throttle(callback, delay) {
