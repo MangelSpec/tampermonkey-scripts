@@ -4,7 +4,7 @@
 // @description Converting alza.cz CZK prices to Euros.
 // @match       https://www.alza.cz/*
 // @match       http://www.alza.cz/*
-// @version     2
+// @version     3
 // @grant       GM_xmlhttpRequest
 // @connect     www.ecb.europa.eu
 // @run-at      document-end
@@ -23,6 +23,13 @@ var selectors = [
   "td.c5",
   "span.last.price",
   "td.price",
+  "span.price-box__primary-price__value",
+  "span.price-box__price-save-text",
+  "label.lblAccessoriesPrice",
+  "span.price-box__compare-price",
+  "span.js-secondary-price",
+  "span.accessoryGroupPrice",
+  "div.colValue",
 ];
 
 // Fetch exchange rate from ecb.europa.eu
