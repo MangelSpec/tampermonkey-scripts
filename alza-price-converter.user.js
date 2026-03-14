@@ -4,10 +4,11 @@
 // @description Converting alza.cz CZK prices to Euros.
 // @match       https://www.alza.cz/*
 // @match       http://www.alza.cz/*
-// @version     3
+// @version     4
 // @grant       GM_xmlhttpRequest
 // @connect     www.ecb.europa.eu
 // @run-at      document-end
+// @downloadURL https://raw.githubusercontent.com/MangelSpec/tampermonkey-scripts/main/alza-price-converter.user.js
 // @updateURL   https://raw.githubusercontent.com/MangelSpec/tampermonkey-scripts/main/alza-price-converter.user.js
 // ==/UserScript==
 
@@ -30,6 +31,12 @@ var selectors = [
   "span.js-secondary-price",
   "span.accessoryGroupPrice",
   "div.colValue",
+  "[class*='detailVariants-alz-']",
+  ".price",
+  "[class*='descriptionTab-alz-']",
+  "[class*='commodityHooks-alz-']",
+  ".text-basic-neutral-700",
+  ".text-basic-red-500",
 ];
 
 // Fetch exchange rate from ecb.europa.eu
@@ -56,22 +63,31 @@ function processXML_Response(response) {
 
 function reportAJAX_Error(response) {
   console.error(
-    `TM script => Error ${response.status}!  ${response.statusText}`
+    `TM script => Error ${response.status}!  ${response.statusText}`,
   );
+}
+
+function convertTextNode(textNode) {
+  if (textNode.textContent.includes("€")) return;
+  var match = textNode.textContent.match(/(\d[\d\s,.]*),\s*-/);
+  if (!match) return;
+  var price = parseInt(match[1].replace(/[^0-9]/g, ""));
+  if (!isNaN(price) && price > 0) {
+    var price_eur = (price * rate).toFixed(2);
+    textNode.textContent = textNode.textContent.replace(
+      /(\d[\d\s,.]*),\s*-/,
+      price_eur + "€",
+    );
+  }
 }
 
 function convertPrices() {
   var allPrices = document.querySelectorAll(selectors.join(","));
   allPrices.forEach((node) => {
-    if (
-      (node.innerText.includes(",-") || node.innerText.includes("Kč")) &&
-      !node.innerText.includes("€")
-    ) {
-      var price = parseInt(node.innerText.replace(/[^0-9.,]/g, ""));
-      if (!isNaN(price)) {
-        var price_eur = price * rate;
-        node.innerText = parseFloat(price_eur).toFixed(2) + "€";
-      }
+    var walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    var textNode;
+    while ((textNode = walker.nextNode())) {
+      convertTextNode(textNode);
     }
   });
 }
