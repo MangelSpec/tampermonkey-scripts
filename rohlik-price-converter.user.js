@@ -4,7 +4,7 @@
 // @description Converting rohlik.cz CZK prices to Euros.
 // @match       https://www.rohlik.cz/*
 // @match       http://www.rohlik.cz/*
-// @version     3
+// @version     4
 // @grant       GM_xmlhttpRequest
 // @connect     www.ecb.europa.eu
 // @run-at      document-end
@@ -14,11 +14,9 @@
 
 var rate = 0.041; // hardcoded currency rate in case fetch fails
 
-// Updated selectors to include all targeted elements
 var selectors = [
-  '[data-test="productCard-body-price-price"]',
   '[data-test="productCard-body-price-sale"]',
-  '[data-test="productCard-footer-unitPrice"]',
+  '[data-test="product-detail-price-section-sale"]',
   '[data-test="product-price"]',
   '[data-test="product-in-sale-original"]',
   '[data-test="whisperer-product-price"]',
@@ -59,14 +57,18 @@ function reportAJAX_Error(response) {
 function convertPrices() {
   var allPrices = document.querySelectorAll(selectors.join(","));
   allPrices.forEach((node) => {
-    var priceText = node.innerText;
-    // This regex now specifically looks for the format "CZK 64.90" or similar.
-    var matches = priceText.match(/CZK\s*([0-9.,]+)/);
-    if (matches && matches[1]) {
-      var price = parseFloat(matches[1].replace(",", "."));
+    var priceText = node.textContent;
+    var matches = priceText.match(
+      /(?:CZK\s*([0-9][0-9\s.,]*)|([0-9][0-9\s.,]*)\s*CZK)/,
+    );
+    var priceTextMatch = matches && (matches[1] || matches[2]);
+    if (priceTextMatch) {
+      var price = parseFloat(
+        priceTextMatch.replace(/\s/g, "").replace(",", "."),
+      );
       if (!isNaN(price)) {
         var price_eur = price * rate;
-        node.innerHTML = `${parseFloat(price_eur).toFixed(2)}€`;
+        node.textContent = `${price_eur.toFixed(2)} €`;
       }
     }
   });
@@ -83,24 +85,30 @@ function convertPrices() {
 }
 
 function convertComplexPrices() {
-  document
-    .querySelectorAll('[data-test="productCard-body-price"]')
-    .forEach((wrap) => {
+  const priceLayouts = [
+    {
+      wrap: '[data-test="productCard-body-price"]',
+      price: '[data-test="productCard-body-price-priceNo"]',
+      currency: '[data-test="productCard-body-price-currency"]',
+    },
+    {
+      wrap: '[data-test="product-detail-price-section-price"]',
+      price: '[data-test="product-detail-price-section-priceNo"]',
+      currency: '[data-test="product-detail-price-section-currency"]',
+    },
+  ];
+
+  priceLayouts.forEach((layout) => {
+    document.querySelectorAll(layout.wrap).forEach((wrap) => {
       // Skip this element if it has already been processed
       if (wrap.getAttribute("data-converted") === "true") {
         return;
       }
 
       // Extract and convert the main price and fraction
-      const mainPriceElement = wrap.querySelector(
-        '[data-test="productCard-body-price-priceNo"] span'
-      );
-      const fractionElement = wrap.querySelector(
-        '[data-test="productCard-body-price-priceNo"] sup'
-      );
-      const currencyElement = wrap.querySelector(
-        '[data-test="productCard-body-price-currency"]'
-      );
+      const mainPriceElement = wrap.querySelector(`${layout.price} span`);
+      const fractionElement = wrap.querySelector(`${layout.price} sup`);
+      const currencyElement = wrap.querySelector(layout.currency);
 
       if (mainPriceElement && fractionElement && currencyElement) {
         // Combine main price and fraction for conversion
@@ -125,26 +133,32 @@ function convertComplexPrices() {
         }
       }
     });
+  });
 }
 
 function convertPricesWithUnits() {
   document
     .querySelectorAll(
-      '[data-test="productCard-footer-unitPrice"], .priceOffer, [data-test="product-price-per-unit"]'
+      '[data-test="productCard-footer-unitPrice"], .priceOffer, [data-test="product-price-per-unit"], [data-test="product-detail-weight-info"] > span:last-child',
     )
     .forEach((priceElement) => {
       // Extract price and unit
-      const priceText = priceElement.innerText;
-      const matches = priceText.match(/([0-9.,]+)\s*CZK\s*\/\s*(\w+)/);
+      const priceText = priceElement.textContent;
+      const matches = priceText.match(
+        /(?:CZK\s*([0-9][0-9\s.,]*)|([0-9][0-9\s.,]*)\s*CZK)\s*\/\s*([^\s]+)/,
+      );
+      const priceTextMatch = matches && (matches[1] || matches[2]);
+      const unit = matches && matches[3];
 
-      if (matches && matches[1] && matches[2]) {
-        const priceCZK = parseFloat(matches[1].replace(",", "."));
-        const unit = matches[2]; // e.g., "kg", "l", or "pc"
+      if (priceTextMatch && unit) {
+        const priceCZK = parseFloat(
+          priceTextMatch.replace(/\s/g, "").replace(",", "."),
+        );
 
         if (!isNaN(priceCZK)) {
           const priceEUR = priceCZK * rate; // Convert to EUR using the global 'rate'
           // Update the priceElement with the converted price and original unit
-          priceElement.innerText = `${priceEUR.toFixed(2)}€ /${unit}`;
+          priceElement.textContent = `${priceEUR.toFixed(2)} € /${unit}`;
         }
       }
     });
